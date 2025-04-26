@@ -1,1 +1,120 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Country Globe Selector</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+    }
+    #globeViz {
+      width: 100%;
+      height: 100vh;
+      position: relative;
+    }
+    #search-container {
+      position: absolute;
+      top: 20px;
+      right: 30px;
+      width: 250px;
+      z-index: 10;
+      background: rgba(255, 255, 255, 0.8);
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+      padding: 10px;
+      backdrop-filter: blur(10px);
+    }
+    #countryInput {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      border: none;
+      outline: none;
+      background: transparent;
+      z-index: 5;
+    }
+    #suggestions {
+      list-style: none;
+      padding: 0;
+      margin: 5px 0 0 0;
+      max-height: 200px;
+      overflow-y: auto;
+      border-top: 1px solid #ccc;
+    }
+    #suggestions li {
+      padding: 10px;
+      cursor: pointer;
+    }
+    #suggestions li:hover {
+      background-color: #eee;
+    }
+  </style>
+  
+  
+  <script src="https://cdn.jsdelivr.net/npm/globe.gl"></script>
+</head>
+<body>
+    <body>
+        <div id="globeViz">
+
+        </div>
+
+        <div id="search-container">
+            <input type="text" id="countryInput" placeholder="Type a country name...">
+            <ul id="suggestions"></ul>
+          </div>
+      
+        <script src="https://cdn.jsdelivr.net/npm/globe.gl"></script>
+        <script>
+    const countries = [
+      "Sweden", "Finland", "Norway", "Denmark", "Germany", "Netherlands", "Estonia", "Spain", "Austria",
+      "Switzerland", "United Kingdom", "France", "Italy", "Poland", "Romania", "India", "Japan", "Thailand",
+      "Kazakhstan", "Turkey", "Vietnam", "Malaysia", "Philippines", "Canada", "USA", "Brazil", "Argentina",
+      "Mexico", "Chile", "Peru", "Nigeria", "South Africa", "Kenya", "Egypt", "Australia", "New Zealand"
+    ];
+
+    const countryCoords = {
+      "USA": [38, -97], "India": [21, 78], "Canada": [56, -106], "Brazil": [-10, -55], "Australia": [-25, 133],
+      "Germany": [51, 10], "France": [46, 2], "Italy": [42.5, 12.5], "Spain": [40, -4], "United Kingdom": [55, -3],
+      "Poland": [52, 20], "Romania": [46, 25], "Sweden": [60, 18], "Norway": [62, 10], "Finland": [64, 26],
+      "Denmark": [56, 10], "Netherlands": [52.5, 5.75], "Estonia": [59, 26], "Austria": [47.5, 14.5],
+      "Switzerland": [47, 8], "Japan": [36, 138], "Thailand": [15, 101], "Kazakhstan": [48, 68], "Turkey": [39, 35],
+      "Vietnam": [16, 108], "Malaysia": [3, 102], "Philippines": [13, 122], "Argentina": [-34, -64],
+      "Mexico": [23, -102], "Chile": [-30, -71], "Peru": [-10, -76], "Nigeria": [10, 8], "South Africa": [-29, 24],
+      "Kenya": [1, 38], "Egypt": [26, 30], "New Zealand": [-41, 174]
+    };
+
+    const globe = Globe()(document.getElementById('globeViz'))
+      .globeImageUrl('//cdn.jsdelivr.net/npm/three-globe/example/img/earth-night.jpg');
+
+    const input = document.getElementById("countryInput");
+    const suggestions = document.getElementById("suggestions");
+
+    input.addEventListener("input", () => {
+      const query = input.value.toLowerCase();
+      suggestions.innerHTML = "";
+      if (!query) return;
+      countries.filter(c => c.toLowerCase().includes(query)).forEach(country => {
+        const li = document.createElement("li");
+        li.textContent = country;
+        li.onclick = () => {
+          input.value = country;
+          suggestions.innerHTML = "";
+          flyToCountry(country);
+        };
+        suggestions.appendChild(li);
+      });
+    });
+
+    function flyToCountry(country) {
+      const coords = countryCoords[country];
+      if (!coords) return;
+      const [lat, lng] = coords;
+      globe.pointOfView({ lat, lng, altitude: 2 }, 1000);
+    }
+  </script>
+</body>
+</html>
