@@ -1,120 +1,120 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Egor | Globe</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Interactive World Explorer</title>
   <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-    }
-    #globeViz {
-      width: 100%;
-      height: 100vh;
-      position: relative;
-    }
-    #search-container {
-      position: absolute;
-      top: 20px;
-      right: 30px;
-      width: 250px;
-      z-index: 10;
-      background: rgba(255, 255, 255, 0.8);
-      border-radius: 10px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-      padding: 10px;
-      backdrop-filter: blur(10px);
-    }
-    #countryInput {
-      width: 100%;
-      padding: 10px;
-      font-size: 16px;
-      border: none;
-      outline: none;
-      background: transparent;
-      z-index: 5;
-    }
-    #suggestions {
-      list-style: none;
-      padding: 0;
-      margin: 5px 0 0 0;
-      max-height: 200px;
-      overflow-y: auto;
-      border-top: 1px solid #ccc;
-    }
-    #suggestions li {
-      padding: 10px;
-      cursor: pointer;
-    }
-    #suggestions li:hover {
-      background-color: #eee;
-    }
+    body{margin:0;height:100%;overflow:hidden;font-family:sans-serif;}
+    #globeViz{width:100%;height:100vh;position:relative;cursor:grab;}
+
+    /* ——— Title Glow ——— */
+    @keyframes glowPulse{0%{text-shadow:0 0 6px rgba(255,255,255,.8),0 0 16px rgba(0,153,255,.6);}50%{text-shadow:0 0 12px rgba(0,153,255,1),0 0 24px rgba(0,153,255,.8);}100%{text-shadow:0 0 6px rgba(255,255,255,.8),0 0 16px rgba(0,153,255,.6);}}
+    #titleBar{position:absolute;top:15px;left:50%;transform:translateX(-50%);color:#fff;font-size:26px;font-weight:600;z-index:11;pointer-events:none;animation:glowPulse 3s ease-in-out infinite;}
+
+    /* ——— Floating UI ——— */
+    #search-container{position:absolute;bottom:25px;left:50%;transform:translateX(-50%);width:260px;z-index:10;background:rgba(0,0,0,.25);border-radius:12px;padding:10px 12px;box-shadow:0 4px 12px rgba(0,0,0,.25);backdrop-filter:blur(8px);display:flex;flex-direction:column;gap:6px;}
+    #countryInput{width:100%;padding:10px;font-size:15px;border:none;outline:none;background:transparent;color:#fff;}
+    #countryInput::placeholder{color:rgba(255,255,255,.7);} 
+    #suggestions{list-style:none;padding:0;margin:0;max-height:160px;overflow-y:auto;border-top:1px solid rgba(255,255,255,.3);}    
+    #suggestions li{padding:8px 10px;cursor:pointer;color:#fff;background:transparent;}    
+    #suggestions li:hover{background:rgba(255,255,255,.25);}    
+    #factBox{font-size:14px;color:#fff;max-height:100px;overflow-y:auto;line-height:1.3;}
   </style>
-  
-  
   <script src="https://cdn.jsdelivr.net/npm/globe.gl"></script>
+  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
 </head>
 <body>
-    <body>
-        <div id="globeViz">
+  <div id="globeViz"></div>
+  <div id="titleBar">Interactive World Explorer</div>
+  <div id="search-container">
+    <input type="text" id="countryInput" placeholder="Type a country name…" />
+    <ul id="suggestions"></ul>
+    <div id="factBox">Select a country to see a fun fact!</div>
+  </div>
 
-        </div>
+  <script>
+  document.addEventListener('DOMContentLoaded',()=>{
+    /* ——— State ——— */
+    let countries=[]; const countryCoords={}; let worldFeatures=[]; let selectedCountry='';
 
-        <div id="search-container">
-            <input type="text" id="countryInput" placeholder="Type a country name...">
-            <ul id="suggestions"></ul>
-          </div>
-      
-        <script src="https://cdn.jsdelivr.net/npm/globe.gl"></script>
-        <script>
-    const countries = [
-      "Sweden", "Finland", "Norway", "Denmark", "Germany", "Netherlands", "Estonia", "Spain", "Austria",
-      "Switzerland", "United Kingdom", "France", "Italy", "Poland", "Romania", "India", "Japan", "Thailand",
-      "Kazakhstan", "Turkey", "Vietnam", "Malaysia", "Philippines", "Canada", "USA", "Brazil", "Argentina",
-      "Mexico", "Chile", "Peru", "Nigeria", "South Africa", "Kenya", "Egypt", "Australia", "New Zealand"
-    ];
+    /* ——— Globe ——— */
+    const globe=Globe()(document.getElementById('globeViz'))
+      .globeImageUrl('//cdn.jsdelivr.net/npm/three-globe/example/img/earth-night.jpg')
+      .backgroundColor('#000');
 
-    const countryCoords = {
-      "USA": [38, -97], "India": [21, 78], "Canada": [56, -106], "Brazil": [-10, -55], "Australia": [-25, 133],
-      "Germany": [51, 10], "France": [46, 2], "Italy": [42.5, 12.5], "Spain": [40, -4], "United Kingdom": [55, -3],
-      "Poland": [52, 20], "Romania": [46, 25], "Sweden": [60, 18], "Norway": [62, 10], "Finland": [64, 26],
-      "Denmark": [56, 10], "Netherlands": [52.5, 5.75], "Estonia": [59, 26], "Austria": [47.5, 14.5],
-      "Switzerland": [47, 8], "Japan": [36, 138], "Thailand": [15, 101], "Kazakhstan": [48, 68], "Turkey": [39, 35],
-      "Vietnam": [16, 108], "Malaysia": [3, 102], "Philippines": [13, 122], "Argentina": [-34, -64],
-      "Mexico": [23, -102], "Chile": [-30, -71], "Peru": [-10, -76], "Nigeria": [10, 8], "South Africa": [-29, 24],
-      "Kenya": [1, 38], "Egypt": [26, 30], "New Zealand": [-41, 174]
-    };
+    // responsive
+    function resizeGlobe(){const rect=document.getElementById('globeViz').getBoundingClientRect(); globe.width([rect.width]); globe.height([rect.height]);}
+    window.addEventListener('resize',resizeGlobe);
 
-    const globe = Globe()(document.getElementById('globeViz'))
-      .globeImageUrl('//cdn.jsdelivr.net/npm/three-globe/example/img/earth-night.jpg');
+    /* ——— Load data ——— */
+    fetch('https://unpkg.com/world-atlas@2/countries-110m.json')
+      .then(r=>r.json())
+      .then(atlas=>{
+        worldFeatures=topojson.feature(atlas,atlas.objects.countries).features;
+        countries=worldFeatures.map(f=>f.properties.name).sort();
+        // compute rough centroid for fly‑to
+        worldFeatures.forEach(f=>{
+          const pts=[]; (function flat(a){typeof a[0]==='number'?pts.push(a):a.forEach(flat);} )(f.geometry.coordinates);
+          const sum=pts.reduce((acc,[x,y])=>{acc.x+=x; acc.y+=y; return acc;},{x:0,y:0});
+          const n=pts.length||1; countryCoords[f.properties.name]=[sum.y/n,sum.x/n];
+        });
 
-    const input = document.getElementById("countryInput");
-    const suggestions = document.getElementById("suggestions");
+        // set polygons data ONCE for interactivity
+        globe.polygonsData(worldFeatures)
+          .polygonAltitude(()=>0.04)
+          .onPolygonClick(feat=>selectCountry(feat.properties.name));
 
-    input.addEventListener("input", () => {
-      const query = input.value.toLowerCase();
-      suggestions.innerHTML = "";
-      if (!query) return;
-      countries.filter(c => c.toLowerCase().includes(query)).forEach(country => {
-        const li = document.createElement("li");
-        li.textContent = country;
-        li.onclick = () => {
-          input.value = country;
-          suggestions.innerHTML = "";
-          flyToCountry(country);
-        };
-        suggestions.appendChild(li);
+        refreshPolygonColors();
+        resizeGlobe();
+      });
+
+    /* ——— UI refs ——— */
+    const input=document.getElementById('countryInput');
+    const suggestions=document.getElementById('suggestions');
+    const factBox=document.getElementById('factBox');
+
+    /* ——— Autocomplete ——— */
+    input.addEventListener('input',()=>{
+      const q=input.value.toLowerCase(); suggestions.innerHTML=''; if(!q) return;
+      countries.filter(c=>c.toLowerCase().includes(q)).forEach(c=>{
+        const li=document.createElement('li'); li.textContent=c; li.onclick=()=>selectCountry(c); suggestions.appendChild(li);
       });
     });
 
-    function flyToCountry(country) {
-      const coords = countryCoords[country];
-      if (!coords) return;
-      const [lat, lng] = coords;
-      globe.pointOfView({ lat, lng, altitude: 2 }, 1000);
+    /* ——— Selection workflow ——— */
+    function selectCountry(country){
+      selectedCountry=country;
+      input.value=country;
+      suggestions.innerHTML='';
+      flyToCountry(country);
+      refreshPolygonColors();
+      fetchFunFact(country);
     }
+
+    function flyToCountry(country){
+      const coords=countryCoords[country]; if(!coords) return; const [lat,lng]=coords;
+      globe.pointOfView({lat,lng,altitude:2},1000);
+    }
+
+    function refreshPolygonColors(){
+      globe
+        .polygonCapColor(d=>d.properties.name===selectedCountry?'rgba(255,165,0,0.6)':'rgba(255,255,255,0.05)')
+        .polygonSideColor(d=>d.properties.name===selectedCountry?'rgba(255,165,0,0.3)':'rgba(255,255,255,0.02)')
+        .polygonStrokeColor(d=>d.properties.name===selectedCountry?'#ffa500':'rgba(255,255,255,0.15)')
+        .polygonsTransitionDuration(300);
+    }
+
+    /* ——— Fun fact ——— */
+    function fetchFunFact(country){
+      factBox.textContent='Loading fun fact…';
+      const title=encodeURIComponent(country.replace(/ /g,'_'));
+      fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${title}`)
+        .then(r=>r.ok?r.json():null)
+        .then(data=>{factBox.textContent=data&&data.extract?data.extract.split('. ')[0]+'.':'No fun fact available.';})
+        .catch(()=>factBox.textContent='No fun fact available.');
+    }
+  });
   </script>
 </body>
 </html>
